@@ -1,90 +1,52 @@
-This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+## Udacity self-driving Car Capstone Project : System Integration
 
-Please use **one** of the two installation options, either native **or** docker installation.
+## Project Overview
 
-### Native Installation
+   In this project, there are three subsystems:
 
-* Be sure that your workstation is running Ubuntu 16.04 Xenial Xerus or Ubuntu 14.04 Trusty Tahir. [Ubuntu downloads can be found here](https://www.ubuntu.com/download/desktop).
-* If using a Virtual Machine to install Ubuntu, use the following configuration as minimum:
-  * 2 CPU
-  * 2 GB system memory
-  * 25 GB of free hard drive space
+   1. Perception - Camera and sensors are contained in this subsystem. The Traffic Light Detection Node needs to be implemented. Two programs(tl_detector.py and tl_classifier.py) needs to be completed.
 
-  The Udacity provided virtual machine has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this.
+   2. Planning - The planning subsystem contains two nodes, Waypoint Loader and Waypoint Updater Node. The Waypoint Loader is provided by Udacity. When completed, the Waypoint Updater Node will provide the vehicle waypoints to follow in the simulator. The program, waypoint_updater.py, needs to be implemented.     
 
-* Follow these instructions to install ROS
-  * [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) if you have Ubuntu 16.04.
-  * [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu) if you have Ubuntu 14.04.
-* [Dataspeed DBW](https://bitbucket.org/DataspeedInc/dbw_mkz_ros)
-  * Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
-* Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases).
+   3. Control - The control subsystem provides the PID control and Drive By Wire for the vehicle. The programs dbw_node.py, twist_controller.py, and pid.py needs to be implemented.  
 
-### Docker Installation
-[Install Docker](https://docs.docker.com/engine/installation/)
+   After the implementation of these subsystems the vehicle will be able to follow the waypoints and stop at red lights.
 
-Build the docker container
-```bash
-docker build . -t capstone
-```
+## Implementation Details
+  The suggested order for project/program development is:
 
-Run the docker file
-```bash
-docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it capstone
-```
+#### 1. Waypoint Updater (Partial)
 
-### Port Forwarding
-To set up port forwarding, please refer to the "uWebSocketIO Starter Guide" found in the classroom (see Extended Kalman Filter Project lesson).
+  The video walkthrough for step 1 in the Capstone project is  to implement waypoint_updater.py to publish  waypoints. The end of implementation the node is subscribed to the following topics:
 
-### Usage
+-   `/base_waypoints`
+-   `/current_pose`
 
-1. Clone the project repository
-```bash
-git clone https://github.com/udacity/CarND-Capstone.git
-```
+  and publishes the following topic:
 
-2. Install python dependencies
-```bash
-cd CarND-Capstone
-pip install -r requirements.txt
-```
-3. Make and run styx
-```bash
-cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
-```
-4. Run the simulator
+-   `/final_waypoints` (publishes at 50Hz)
 
-### Real world testing
-1. Download [training bag](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic_light_bag_file.zip) that was recorded on the Udacity self-driving car.
-2. Unzip the file
-```bash
-unzip traffic_light_bag_file.zip
-```
-3. Play the bag file
-```bash
-rosbag play -l traffic_light_bag_file/traffic_light_training.bag
-```
-4. Launch your project in site mode
-```bash
-cd CarND-Capstone/ros
-roslaunch launch/site.launch
-```
-5. Confirm that traffic light detection works on real life images
+when executed in the simulator the vehicle attempts to the green dot waypoints but does not follow completely.
 
-### Other library/driver information
-Outside of `requirements.txt`, here is information on other driver/library versions used in the simulator and Carla:
+#### 2. Twist Controller
 
-Specific to these libraries, the simulator grader and Carla use the following:
+  The second part of the walkthrough is about implementing the dbw_node.py, PID.py, and twist_controller.py.
+  The dbw_node.py program provides the overall control of the vehicle by publishing the topics:
 
-|        | Simulator | Carla  |
-| :-----------: |:-------------:| :-----:|
-| Nvidia driver | 384.130 | 384.130 |
-| CUDA | 8.0.61 | 8.0.61 |
-| cuDNN | 6.0.21 | 6.0.21 |
-| TensorRT | N/A | N/A |
-| OpenCV | 3.2.0-dev | 2.4.8 |
-| OpenMP | N/A | N/A |
+  -   `/vehicle/steering_cmd` (publishes at 50Hz)
+  -   `/vehicle/throttle_cmd` (publishes at 50Hz)
+  -   `/vehicle/brake_cmd` (publishes at 50Hz)
 
-We are working on a fix to line up the OpenCV versions between the two.
+  Within the dbw_node.py, twist_controller.py and PID.py is initialized. When the finished program is executed in the simulator, the vehicle follows the waypoints closely.
+
+#### 3. Traffic Light Detection
+
+  The third part of the walkthrough is detecting the state of the traffic light along the path and stopping at the stop line during a red light. The initial round of the implementation just uses the published state of the traffic light and based on that information to stop the vehicle. The next improvement will to implement an objection detection API to detect traffic light states (red, yellow, or green).
+
+  The developer used rosbag and image viewer to collect traffic light images in the simulator. The images are labeled using labelimg provided by (https://github.com/tzutalin/labelImg). The pre-trained model can only detect the whole traffic light but no the states of the lights, therefore, the ssd_mobilenet_v1_coco_2018_01_28 needs to be re-trained on the local machine.
+
+  However, the local machine has Tensorflow 2.0, which is newer version of the Tensorflow and when compiling the code retrain the model ran into many imcompatiabilities. Therefore, https://github.com/alex-lechner/Traffic-Light-Classification his trained model for my traffic light classifier.
+
+#### 4. Waypoint Updater (Full)
+
+  The Waypoint Updater (Full) is updated to Use /traffic_waypoint to change the waypoint target velocities before publishing to /final_waypoints. The vehicle should now stop at red traffic lights and move when they are green.
